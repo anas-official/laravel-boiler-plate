@@ -1,0 +1,88 @@
+version: "3.0"
+services:
+  #############################################################################################################################################################################
+
+  ####                          boilerplate FOR ALS
+  ####      NOTE ANYTHING THAT HAS A POSTFIX APP WOULD BE THE boilerplate RELATED SERVICE
+
+  #############################################################################################################################################################################
+
+  als-app:
+    build:
+      context: ./
+      dockerfile: .Dockerfile
+    container_name: als-app
+    # command: sh -c "php artisan cache:clear && php artisan migrate --seed"
+    hostname: als-app
+    restart: always
+    environment:
+      APP_ENV: local
+      APP_DEBUG: 'true'
+      APP_URL: http://localhost:91
+      APP_LOCALE: en
+      CACHE_DRIVER: array
+      APP_FALLBACK_LOCALE: en
+      DB_CONNECTION: mysql
+      DB_HOST: als-db
+      DB_DATABASE: als-db
+      DB_USERNAME: root
+      DB_PASSWORD: 123
+      APP_KEY: y3DLxnEczGWGN4CKUdk1S5GbMumU2dfH
+      VIRTUAL_HOST: "localhost"
+      PHP_IDE_CONFIG: "serverName=dev.74"
+    volumes:
+      - ./:/var/www/html
+      - ./xdebug.ini:/usr/local/etc/php/conf.d/xdebug-settings.ini
+      - ./error_reporting.ini:/usr/local/etc/php/conf.d/error_reporting.ini
+    ports:
+      - "96:80"
+    expose:
+        - "9000"
+        - "9003"
+        - "9001"
+    extra_hosts:
+        - "host.docker.internal:host-gateway"
+    links:
+      - als-db:db
+    networks:
+        default:
+            aliases:
+                - localhost
+
+  als-db:
+    image: mysql:5.7
+    container_name: als-db
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password # needed as of mysql 8
+    healthcheck:
+      test: "/usr/bin/mysql --user=root --password=123 --execute \"SHOW DATABASES;\""
+      interval: 2s
+      timeout: 30s
+      retries: 15
+    ports:
+      - "3308:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123
+      MYSQL_PASSWORD: 123
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+      - ./resources:/docker-entrypoint-initdb.d
+
+  als-phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: als-phpmyadmin
+    links:
+      - als-db
+    environment:
+      PMA_HOST: als-db
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    restart: always
+    ports:
+      - 8079:80
+
+volumes:
+  mysql-data: { }
+
+networks:
+  default: ~
